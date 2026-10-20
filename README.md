@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # E-IPCR · Mariano Marcos State University
 
 E-IPCR is the web system for preparing, submitting, reviewing and approving the **Individual Performance Commitment and Review (IPCR)** form at Mariano Marcos State University (MMSU), Batac City, Ilocos Norte.
@@ -173,3 +174,6 @@ The database holds personal and performance data covered by the Data Privacy Act
 - **Notifications:** every workflow event creates an in-app notification at once and a queued email.
 - **Audit log:** sign-ins (including failed attempts and lockouts), account and unit changes, every IPCR action, template changes, rating period and settings changes. Passwords and tokens are never recorded.
 - **Soft deletes** on users, templates and IPCRs; units and users are deactivated, not deleted.
+=======
+# E-IPCR
+>>>>>>> 8bdd6ef0153a5be5c61e2b9c23afe0bdad5ae797
