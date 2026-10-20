@@ -1,0 +1,21 @@
+.hierarchy{border:1px solid #dbe3dc;border-radius:10px;background:white;margin:16px 0;overflow:hidden}
+.hierarchy>summary{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:22px;cursor:pointer;list-style:none}
+.hierarchy>summary:before{content:'›';font-size:24px;color:#256a2b}
+.hierarchy[open]>summary:before{content:'⌄'}
+.hierarchy>summary>span:first-of-type{flex:1}
+.hierarchy>summary small{display:block;color:#66736b;margin-top:5px}
+.hierarchy>summary:focus-visible{outline:3px solid #e5bd21;outline-offset:-3px}
+.college-group>summary{border-top:3px solid #e5bd21}
+.hierarchy-body{padding:0 20px 8px;background:#f6f8f6}
+.department-group>summary{background:#eef4ee;padding:16px;font-size:14px}
+.scope-trail{padding:14px 0 22px;color:#104d03}
+.accessible-chart{margin-top:24px}
+.accessible-chart .group-bar{grid-template-columns:minmax(100px,1fr) minmax(70px,1.2fr) 32px}
+.progress-table{min-width:950px}
+fieldset.field{border:1px solid #dbe3dc;border-radius:6px;padding:12px}
+fieldset.field legend{font-size:14px;font-weight:600}
+fieldset.field label{display:block;padding:4px 0}
+@media(max-width:600px){.hierarchy>summary{padding:16px;flex-wrap:wrap;gap:10px}.hierarchy-body{padding:0 8px 4px}.department-group>summary{font-size:13px}.college-group>summary .tag{margin-left:24px}.scope-trail{font-size:13px}.report-filters{grid-template-columns:1fr!important}}
+@media print{.accessible-chart,.hierarchy{break-inside:avoid}.scope-trail{padding:8px 0}.progress-table{min-width:0;font-size:9px}.progress-table th,.progress-table td{padding:6px}.records-table button{padding:0;color:#111}.two-col{display:grid;grid-template-columns:1fr 1fr}}
+
+@media print{#report-results .panel-head p{color:#39483d!important}.progress-table a{display:none}}

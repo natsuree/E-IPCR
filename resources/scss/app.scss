@@ -1,0 +1,27 @@
+// E-IPCR: Bootstrap 5 with the MMSU colours from the Figma design.
+
+$eipcr-green: #104D03;
+$eipcr-green-dark: #0b3802;
+$eipcr-gold: #E5BD21;
+$eipcr-page: #F4F5F4;
+$eipcr-border: #DFE5DF;
+$eipcr-text: #28362B;
+$eipcr-accent: #256A2B;
+$eipcr-soft: #EDF4EE;
+$eipcr-muted: #66736A;
+
+// Bootstrap variable overrides
+$primary: $eipcr-accent;
+$success: $eipcr-accent;
+$body-color: $eipcr-text;
+$link-color: $eipcr-accent;
+$link-hover-color: $eipcr-green;
+$border-color: $eipcr-border;
+$secondary-color: $eipcr-muted;
+$font-family-sans-serif: "DM Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+$font-size-base: .95rem;
+$input-btn-focus-color: rgba($eipcr-accent, .2);
+$form-check-input-checked-bg-color: $eipcr-accent;
+
+@import "bootstrap/scss/bootstrap";
+@import "eipcr";
