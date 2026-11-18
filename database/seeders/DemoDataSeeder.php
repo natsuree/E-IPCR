@@ -29,7 +29,7 @@ class DemoDataSeeder extends Seeder
     /** [name, email, role, position, college, department] */
     public const PEOPLE = [
         ['Sofia Mendoza', 'sofia.mendoza@mmsu.test', Role::Teaching, 'Instructor I', 'College of Engineering', 'Computer Engineering'],
-        ['Luis Navarro', 'luis.navarro@mmsu.test', Role::NonTeaching, 'Records Officer II', 'Records Office', null],
+        ['Luis Navarro', 'luis.navarro@mmsu.test', Role::NonTeaching, 'Records Officer II', 'Records Office', 'Records Services'],
         ['Daniel Ramos', 'daniel.ramos@mmsu.test', Role::DepartmentHead, 'Department Head, Computer Engineering', 'College of Engineering', 'Computer Engineering'],
         ['Elena Flores', 'elena.flores@mmsu.test', Role::Dean, 'Dean, College of Engineering', 'College of Engineering', null],
         ['Mika Santos', 'mika.santos@mmsu.test', Role::Hr, 'Human Resource Management Officer', 'Human Resource Management Office', null],
@@ -39,14 +39,24 @@ class DemoDataSeeder extends Seeder
         ['Mia Domingo', 'mia.domingo@mmsu.test', Role::Teaching, 'Instructor I', 'College of Engineering', 'Computer Engineering'],
         ['Nina Aquino', 'nina.aquino@mmsu.test', Role::Teaching, 'Assistant Professor I', 'College of Engineering', 'Civil Engineering'],
         ['Bea Fernandez', 'bea.fernandez@mmsu.test', Role::Teaching, 'Instructor III', 'College of Arts and Sciences', 'Mathematics'],
-        ['Grace Abad', 'grace.abad@mmsu.test', Role::NonTeaching, 'Administrative Officer III', 'Finance Office', null],
+        ['Grace Abad', 'grace.abad@mmsu.test', Role::NonTeaching, 'Administrative Officer III', 'Finance Office', 'Financial Services'],
         ['Carlo Reyes', 'carlo.reyes@mmsu.test', Role::Teaching, 'Instructor II', 'College of Engineering', 'Computer Engineering'],
         ['Ana Lim', 'ana.lim@mmsu.test', Role::Teaching, 'Assistant Professor I', 'College of Engineering', 'Computer Engineering'],
         ['Paolo Garcia', 'paolo.garcia@mmsu.test', Role::NonTeaching, 'Department Secretary', 'College of Engineering', 'Computer Engineering'],
         ['Marco Villanueva', 'marco.villanueva@mmsu.test', Role::Teaching, 'Instructor I', 'College of Engineering', 'Civil Engineering'],
         ['Joy Castillo', 'joy.castillo@mmsu.test', Role::Teaching, 'Associate Professor I', 'College of Engineering', 'Civil Engineering'],
         ['Teresa Uy', 'teresa.uy@mmsu.test', Role::Teaching, 'Instructor III', 'College of Engineering', 'Electrical Engineering'],
-        ['Allan Ong', 'allan.ong@mmsu.test', Role::NonTeaching, 'College Secretary', 'College of Engineering', null],
+        ['Allan Ong', 'allan.ong@mmsu.test', Role::NonTeaching, 'College Secretary', 'College of Engineering', 'College Administration'],
+        ['Ivan Lopez', 'ivan.lopez@mmsu.test', Role::DepartmentHead, 'Department Head', 'College of Engineering', 'Civil Engineering'],
+        ['Lara Diaz', 'lara.diaz@mmsu.test', Role::DepartmentHead, 'Department Head', 'College of Engineering', 'Electrical Engineering'],
+        ['Eli Paz', 'eli.paz@mmsu.test', Role::DepartmentHead, 'Department Head', 'College of Engineering', 'College Administration'],
+        ['Ira Santos', 'ira.santos@mmsu.test', Role::DepartmentHead, 'Department Head', 'College of Arts and Sciences', 'Mathematics'],
+        ['Cora Diaz', 'cora.diaz@mmsu.test', Role::Dean, 'Dean', 'College of Arts and Sciences', null],
+        ['Pia Luna', 'pia.luna@mmsu.test', Role::DepartmentHead, 'Department Head', 'Finance Office', 'Financial Services'],
+        ['Lito Paz', 'lito.paz@mmsu.test', Role::Dean, 'Director', 'Finance Office', null],
+        ['Gina Diaz', 'gina.diaz@mmsu.test', Role::DepartmentHead, 'Department Head', 'Records Office', 'Records Services'],
+        ['Enzo Lim', 'enzo.lim@mmsu.test', Role::Dean, 'Director', 'Records Office', null],
+        ['Andrea Cruz', 'andrea.cruz@mmsu.test', Role::Vpaa, 'Vice President for Academic Affairs', null, null],
     ];
 
     /** Remarks used when a reviewer returns a demo IPCR. */
@@ -110,6 +120,9 @@ class DemoDataSeeder extends Seeder
             throw new RuntimeException('DemoDataSeeder must never run in production.');
         }
 
+        foreach (['Records Office' => 'Records Services', 'Finance Office' => 'Financial Services', 'College of Engineering' => 'College Administration'] as $office => $department) {
+            College::where('name', $office)->firstOrFail()->departments()->firstOrCreate(['name' => $department]);
+        }
         $this->users();
         $hr = User::where('email', 'mika.santos@mmsu.test')->firstOrFail();
 

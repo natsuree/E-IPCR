@@ -39,15 +39,21 @@ class ReviewDecisionRequest extends FormRequest
         return [
             'remarks.required' => 'Write remarks that tell the employee what to correct, then return the IPCR.',
             'items.*.rating.required' => 'Give a rating from 1 to 5 for :attribute before approving.',
+            'items.*.rating.integer' => 'Choose a rating from 1 to 5 for :attribute.',
+            'items.*.rating.between' => 'Choose a rating from 1 to 5 for :attribute.',
         ];
     }
 
     public function attributes(): array
     {
+        // Numbered per section, as on screen: "Core Functions indicator 1 ("…")".
         $attributes = [];
-        foreach ($this->route('ipcr')->items as $n => $item) {
-            $attributes["items.{$item->id}.rating"] = 'indicator '.($n + 1);
-            $attributes["items.{$item->id}.remarks"] = 'the remarks for indicator '.($n + 1);
+        foreach ($this->route('ipcr')->items->groupBy('section') as $section => $items) {
+            foreach ($items->values() as $n => $item) {
+                $label = \App\Services\IpcrWorkflow::targetLabel($section, $n + 1, $item->indicator);
+                $attributes["items.{$item->id}.rating"] = $label;
+                $attributes["items.{$item->id}.remarks"] = 'the remarks for '.$label;
+            }
         }
 
         return $attributes;

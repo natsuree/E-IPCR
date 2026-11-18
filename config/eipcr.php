@@ -7,6 +7,7 @@ return [
         'luis.navarro@mmsu.test',
         'daniel.ramos@mmsu.test',
         'elena.flores@mmsu.test',
+        'andrea.cruz@mmsu.test',
         'mika.santos@mmsu.test',
         'alex.rivera@mmsu.test',
     ],

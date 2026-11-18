@@ -8,6 +8,7 @@ enum Role: string
     case NonTeaching = 'nonteaching';
     case DepartmentHead = 'depthead';
     case Dean = 'dean';
+    case Vpaa = 'vpaa';
     case Hr = 'hr';
     case Admin = 'admin';
 
@@ -18,6 +19,7 @@ enum Role: string
             self::NonTeaching => 'Non-Teaching Employee',
             self::DepartmentHead => 'Department Head',
             self::Dean => 'Dean/Director',
+            self::Vpaa => 'VPAA',
             self::Hr => 'HR Personnel',
             self::Admin => 'Administrator',
         };
@@ -39,7 +41,7 @@ enum Role: string
 
     public function isReviewer(): bool
     {
-        return in_array($this, [self::DepartmentHead, self::Dean, self::Hr], true);
+        return in_array($this, [self::DepartmentHead, self::Dean, self::Vpaa, self::Hr], true);
     }
 
     /** The employee type an account of this role is evaluated as, if any. */
@@ -58,6 +60,7 @@ enum Role: string
         return match ($this) {
             self::DepartmentHead => IpcrStatus::Submitted,
             self::Dean => IpcrStatus::WithDean,
+            self::Vpaa => IpcrStatus::WithVpaa,
             self::Hr => IpcrStatus::WithHr,
             default => null,
         };

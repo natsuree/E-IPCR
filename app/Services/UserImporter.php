@@ -34,6 +34,7 @@ class UserImporter
         'non-teaching employee' => 'nonteaching', 'non-teaching' => 'nonteaching', 'nonteaching' => 'nonteaching', 'non teaching' => 'nonteaching',
         'department head' => 'depthead', 'depthead' => 'depthead', 'head' => 'depthead',
         'dean/director' => 'dean', 'dean' => 'dean', 'director' => 'dean',
+        'vice president for academic affairs' => 'vpaa', 'vpaa' => 'vpaa',
         'hr personnel' => 'hr', 'hr' => 'hr',
         'administrator' => 'admin', 'admin' => 'admin',
     ];
@@ -146,7 +147,7 @@ class UserImporter
             if (! $college) {
                 $errors[] = "College/office \"{$v['college_office']}\" was not found. Use the exact name or code from Colleges & Offices.";
             }
-        } elseif ($role !== Role::Admin) {
+        } elseif (! in_array($role, [Role::Admin, Role::Vpaa], true)) {
             $errors[] = 'College/office is missing.';
         }
 

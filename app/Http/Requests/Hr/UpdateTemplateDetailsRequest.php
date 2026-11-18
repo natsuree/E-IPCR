@@ -10,6 +10,8 @@ class UpdateTemplateDetailsRequest extends FormRequest
     public function rules(): array
     {
         $rules = [
+            'college_id' => ['nullable', 'integer', 'exists:colleges,id'],
+            'designation' => ['nullable', 'string', 'max:255'],
             'commitment_period' => ['required', 'string', 'max:100'],
             'commitment_statement' => ['required', 'string', 'max:1000'],
             'rating_scale' => ['required', 'array'],

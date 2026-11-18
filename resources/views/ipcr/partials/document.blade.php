@@ -20,14 +20,14 @@
 </table>
 
 <p style="font-size:10pt; margin:8px 0">
-    I, <strong>{{ $ipcr->user->name }}</strong>, {{ $ipcr->user->position ?? 'employee' }} of {{ $ipcr->user->unitLabel() }},
+    I, <strong>{{ $ipcr->employeeName() }}</strong>, {{ $ipcr->employeePosition() ?? 'employee' }} of {{ $ipcr->employeeUnitLabel() }},
     {{ $ipcr->template->commitmentClause() }} <strong>{{ $ipcr->template->commitment_period }}</strong>.
 </p>
 
 <table style="width:100%; border-collapse:collapse; font-size:9pt; margin-bottom:8px">
     <tr>
         <td style="width:50%; vertical-align:top">
-            <strong>Ratee:</strong> {{ $ipcr->user->name }}@if ($ipcr->user->employee_id) ({{ $ipcr->user->employee_id }})@endif<br>
+            <strong>Ratee:</strong> {{ $ipcr->employeeName() }}@if ($ipcr->employeeNumber()) ({{ $ipcr->employeeNumber() }})@endif<br>
             <strong>Date submitted:</strong> {{ $signoffs['ratee']?->created_at->format('F j, Y') ?? '—' }}
         </td>
         <td style="width:50%; vertical-align:top">
@@ -55,7 +55,7 @@
                 <td style="border:1px solid #555; padding:4px; vertical-align:top">{{ $item->target }}</td>
                 <td style="border:1px solid #555; padding:4px; vertical-align:top">{{ $item->actual_accomplishment }}</td>
                 <td style="border:1px solid #555; padding:4px; vertical-align:top; text-align:center">{{ $item->rating }}</td>
-                <td style="border:1px solid #555; padding:4px; vertical-align:top">{{ $item->remarks }}</td>
+                <td style="border:1px solid #555; padding:4px; vertical-align:top">{{ $item->remarks }}@if ($item->evidence_url)<div style="margin-top:4px; word-break:break-all">MOV: <a href="{{ $item->evidence_url }}">{{ $item->evidence_url }}</a></div>@endif</td>
             </tr>
         @endforeach
         @if (isset($ipcr->section_averages[$section]))
@@ -74,6 +74,12 @@
     </tbody>
 </table>
 
+@if ($ipcr->usesLegacyEmployeeDetails())
+    <p style="font-size:8pt; color:#555">Employee details are from the current account; this record was submitted before they were saved with each IPCR.</p>
+@endif
+@if ($signoffs['vpaa'])
+    <p style="font-size:8pt">VPAA approval: {{ $signoffs['vpaa']->user?->name }} · {{ $signoffs['vpaa']->created_at->format('M j, Y') }}</p>
+@endif
 @if ($ipcr->rating_basis)
     <p style="font-size:8pt; color:#555; margin:4px 0">Final rating: {{ \App\Services\FinalRating::describeMethod($ipcr->rating_basis) }}</p>
 @endif
@@ -84,7 +90,7 @@
             @php($review = $signoffs[$key])
             <td style="width:25%; padding:0 10px; text-align:center; vertical-align:bottom">
                 <div style="font-weight:bold; border-bottom:1px solid #28362B; padding-bottom:2px; min-height:14px">
-                    {{ $key === 'ratee' ? $ipcr->user->name : ($review?->user?->name ?? '') }}
+                    {{ $key === 'ratee' ? $ipcr->employeeName() : ($review?->user?->name ?? '') }}
                 </div>
                 <div>{{ $ipcr->template->signatory($key) }}</div>
                 <div style="color:#555">Date: {{ $review?->created_at?->format('M j, Y') ?? '__________' }}</div>

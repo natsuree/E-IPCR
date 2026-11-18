@@ -33,6 +33,8 @@ class TemplateManager
                 'employee_type' => $type,
                 'version' => $version,
                 'status' => 'draft',
+                'college_id' => $source?->college_id,
+                'designation' => $source?->designation,
                 'copied_from_id' => $source?->id,
                 'commitment_period' => $source && $source->rating_period_id === $period->id ? $source->commitment_period : $period->name,
                 'commitment_statement' => $source?->commitment_statement ?? self::defaultStatement(),
@@ -41,7 +43,7 @@ class TemplateManager
             ]);
 
             foreach ($source?->items ?? [] as $item) {
-                $template->items()->create($item->only(['section', 'program_outcome', 'indicator', 'target', 'sort_order']));
+                $template->items()->create(['copied_item_id' => $item->id] + $item->only(['section', 'program_outcome', 'indicator', 'target', 'sort_order']));
             }
 
             $this->log($template, $by, $source
@@ -61,12 +63,14 @@ class TemplateManager
         }
 
         DB::transaction(function () use ($template, $by) {
+            RatingPeriod::whereKey($template->rating_period_id)->lockForUpdate()->firstOrFail();
             // Re-check inside the transaction so a double click cannot publish twice.
             $updated = IpcrTemplate::whereKey($template->id)->where('status', 'draft')->update(['status' => 'published', 'published_at' => now()]);
             if ($updated !== 1) {
                 throw ValidationException::withMessages(['template' => 'This version was already published. Refresh the page to see it.']);
             }
             $template->refresh();
+            app(DraftTemplateUpdate::class)->forPeriod($template->rating_period_id, $template->employee_type);
             $this->log($template, $by, "Published Version {$template->version}. New {$template->employeeTypeLabel()} IPCRs for {$template->period->name} now use this version.", 'template.published');
         });
     }
@@ -75,7 +79,7 @@ class TemplateManager
     {
         $this->assertDraft($template);
 
-        $template->fill([
+        $template->fill(array_intersect_key($data, array_flip(['college_id', 'designation'])) + [
             'commitment_period' => $data['commitment_period'],
             'commitment_statement' => $data['commitment_statement'],
             'rating_scale' => $data['rating_scale'],
@@ -86,15 +90,26 @@ class TemplateManager
         if (! $changed) {
             return;
         }
-        $template->save();
 
         $labels = [
+            'college_id' => 'college/office assignment',
+            'designation' => 'administrative designation',
             'commitment_period' => 'commitment period',
             'commitment_statement' => 'commitment statement',
             'rating_scale' => 'rating scale labels',
             'signatories' => 'signatory labels',
         ];
-        $this->log($template, $by, 'Updated form details: '.implode(', ', array_map(fn ($k) => $labels[$k], $changed)).'.');
+        $describe = fn (string $k) => match ($k) {
+            'college_id' => 'college/office assignment ('.($template->college_id ? (\App\Models\College::find($template->college_id)?->name ?? 'unit '.$template->college_id) : 'all colleges and offices').')',
+            'designation' => 'administrative designation ('.($template->designation ?: 'any designation').')',
+            default => $labels[$k] ?? str_replace('_', ' ', $k),
+        };
+
+        // The change and its change-log/audit entries are saved together or not at all.
+        DB::transaction(function () use ($template, $by, $changed, $describe) {
+            $template->save();
+            $this->log($template, $by, 'Updated form details: '.implode(', ', array_map($describe, $changed)).'.');
+        });
     }
 
     public function addItem(IpcrTemplate $template, array $data, User $by): TemplateItem

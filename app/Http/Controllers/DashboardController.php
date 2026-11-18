@@ -23,6 +23,11 @@ class DashboardController extends Controller
         return match ($user->role) {
             Role::Teaching, Role::NonTeaching => $this->employee($user, $period),
             Role::DepartmentHead, Role::Dean => $this->reviewer($user, $period),
+            Role::Vpaa => view('review.vpaa', [
+                'period' => $period,
+                'summary' => (new IpcrAnalytics(AnalyticsScope::forUser($user), $period))->summary(),
+                'waiting' => Ipcr::awaiting($user)->count(),
+            ]),
             Role::Hr => $this->hr($user, $period),
             Role::Admin => $this->admin(),
         };
@@ -57,7 +62,14 @@ class DashboardController extends Controller
             ...$data,
             'byCollege' => $data['analytics']?->groupedProgress('college') ?? collect(),
             'waiting' => Ipcr::awaiting($user)->count(),
+            'stalled' => $this->stalled(),
         ]);
+    }
+
+    /** IPCRs nobody can act on because a reviewer or unit assignment is missing. */
+    private function stalled()
+    {
+        return Ipcr::stalled()->with(['user.college', 'user.department', 'period'])->orderBy('ipcrs.submitted_at')->limit(100)->get();
     }
 
     /** Summary cards and the past-deadline list, from the shared analytics service. */
@@ -87,6 +99,7 @@ class DashboardController extends Controller
             ],
             'byRole' => User::where('active', true)->selectRaw('role, count(*) as total')->groupBy('role')->pluck('total', 'role'),
             'recent' => AuditLog::with('user')->latest('id')->take(10)->get(),
+            'stalled' => $this->stalled(),
         ]);
     }
 }

@@ -17,6 +17,8 @@
         <div class="col-6 col-lg-3"><x-stat label="Colleges & offices" :value="$counts['units']" hint="Active units" /></div>
     </div>
 
+    @include('partials.stalled')
+
     <div class="row g-4">
         <div class="col-lg-5">
             <x-card title="Active accounts by role" flush>

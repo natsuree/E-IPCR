@@ -25,6 +25,12 @@
                 <x-status :status="$ipcr->status" />
             </x-slot:actions>
             @include('ipcr.partials.timeline')
+            @if ($stall = $ipcr->stallReason())
+                <div class="alert alert-warning mt-3 mb-0" role="status">
+                    <i class="bi bi-exclamation-triangle me-1"></i> <strong>Waiting for a reviewer to be assigned.</strong> {{ $stall }}
+                    HR and the Administrator can see this IPCR in their list of IPCRs waiting for a reviewer.
+                </div>
+            @endif
             @if ($ipcr->status->value === 'completed')
                 <div class="notice-soft mt-3">
                     <i class="bi bi-patch-check"></i> Completed on {{ $ipcr->completed_at?->format('M j, Y') }}.

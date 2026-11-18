@@ -5,7 +5,7 @@
         @php($review = $signoffs[$key])
         <div>
             <div class="signatory">
-                <div class="who">{{ $key === 'ratee' ? $ipcr->user->name : ($review?->user?->name ?? 'Pending') }}</div>
+                <div class="who">{{ $key === 'ratee' ? $ipcr->employeeName() : ($review?->user?->name ?? 'Pending') }}</div>
                 <div class="label">{{ $ipcr->template->signatory($key) }}</div>
                 <div class="label">Date: {{ $review?->created_at?->format('M j, Y') ?? '__________' }}</div>
             </div>

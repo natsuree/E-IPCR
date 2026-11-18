@@ -24,6 +24,7 @@ class User extends Authenticatable
         'role',
         'employee_type',
         'position',
+        'designation',
         'college_id',
         'department_id',
         'active',
@@ -89,7 +90,7 @@ class User extends Authenticatable
     public function unitLabel(): string
     {
         if (! $this->college) {
-            return 'System administration';
+            return $this->role === Role::Vpaa ? 'University-wide' : 'System administration';
         }
 
         return $this->department
@@ -116,9 +117,9 @@ class User extends Authenticatable
     public function scopeWithinScopeOf(Builder $query, User $viewer): Builder
     {
         return match ($viewer->role) {
-            Role::DepartmentHead => $query->where('department_id', $viewer->department_id),
-            Role::Dean => $query->where('college_id', $viewer->college_id),
-            Role::Hr => $query,
+            Role::DepartmentHead => $query->whereNotNull('department_id')->where('department_id', $viewer->department_id),
+            Role::Dean => $query->whereNotNull('college_id')->where('college_id', $viewer->college_id),
+            Role::Vpaa, Role::Hr => $query,
             Role::Teaching, Role::NonTeaching => $query->whereKey($viewer->id),
             Role::Admin => $query->whereRaw('1 = 0'),
         };
@@ -130,7 +131,7 @@ class User extends Authenticatable
         return match ($this->role) {
             Role::DepartmentHead => $this->department_id !== null && $employee->department_id === $this->department_id,
             Role::Dean => $this->college_id !== null && $employee->college_id === $this->college_id,
-            Role::Hr => true,
+            Role::Vpaa, Role::Hr => true,
             Role::Teaching, Role::NonTeaching => $employee->id === $this->id,
             Role::Admin => false,
         };

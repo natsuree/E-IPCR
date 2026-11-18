@@ -65,14 +65,21 @@ $analytics = function () {
     Route::get('/analytics/export', [AnalyticsController::class, 'export'])->name('analytics.export');
 };
 
+// Employee-only: dashboard, notifications, profile and starting a new IPCR.
 Route::middleware(['auth', 'role:teaching,nonteaching'])->prefix('employee')->name('employee.')->group(function () use ($common) {
     $common();
-    Route::get('/ipcrs', [EmployeeIpcrController::class, 'index'])->name('ipcrs.index');
     Route::get('/ipcr', [EmployeeIpcrController::class, 'current'])->name('ipcrs.current');
     Route::post('/ipcrs', [EmployeeIpcrController::class, 'store'])->name('ipcrs.store');
+});
+
+// The owner's own IPCRs. Also open to an account that changed role but still owns
+// IPCRs (promoted or reassigned); IpcrPolicy limits every page to the owner.
+Route::middleware(['auth', 'ipcr.owner'])->prefix('employee')->name('employee.')->group(function () {
+    Route::get('/ipcrs', [EmployeeIpcrController::class, 'index'])->name('ipcrs.index');
     Route::get('/ipcrs/{ipcr}', [EmployeeIpcrController::class, 'show'])->name('ipcrs.show');
     Route::get('/ipcrs/{ipcr}/edit', [EmployeeIpcrController::class, 'edit'])->name('ipcrs.edit');
     Route::put('/ipcrs/{ipcr}', [EmployeeIpcrController::class, 'update'])->name('ipcrs.update');
+    Route::delete('/ipcrs/{ipcr}/targets/{item}', [EmployeeIpcrController::class, 'removeTarget'])->whereNumber('item')->name('ipcrs.targets.destroy');
     Route::get('/ipcrs/{ipcr}/submit', [EmployeeIpcrController::class, 'confirm'])->name('ipcrs.confirm');
     Route::post('/ipcrs/{ipcr}/submit', [EmployeeIpcrController::class, 'submit'])->name('ipcrs.submit');
     Route::get('/ipcrs/{ipcr}/print', [EmployeeIpcrController::class, 'print'])->name('ipcrs.print');
@@ -92,6 +99,13 @@ Route::middleware(['auth', 'role:dean'])->prefix('dean')->name('dean.')->group(f
     $analytics();
 });
 
+Route::middleware(['auth', 'role:vpaa'])->prefix('vpaa')->name('vpaa.')->group(function () use ($common) {
+    $common();
+    Route::get('/queue', [QueueController::class, 'index'])->name('queue');
+    Route::get('/review/{ipcr}', [QueueController::class, 'show'])->name('review');
+    Route::post('/review/{ipcr}', [QueueController::class, 'decide'])->name('review.decide');
+});
+
 Route::middleware(['auth', 'role:hr'])->prefix('hr')->name('hr.')->group(function () use ($common, $reviewer) {
     $common();
     $reviewer();
@@ -105,6 +119,8 @@ Route::middleware(['auth', 'role:hr'])->prefix('hr')->name('hr.')->group(functio
     Route::delete('/templates/{template}/items/{item}', [HrTemplateController::class, 'destroyItem'])->name('templates.items.destroy')->scopeBindings();
 
     Route::get('/periods', [RatingPeriodController::class, 'index'])->name('periods.index');
+    Route::get('/periods/{period}/roster', [RatingPeriodController::class, 'roster'])->name('periods.roster');
+    Route::put('/periods/{period}/roster', [RatingPeriodController::class, 'saveRoster'])->name('periods.roster.save');
     Route::post('/periods', [RatingPeriodController::class, 'store'])->name('periods.store');
     Route::put('/periods/{period}', [RatingPeriodController::class, 'update'])->name('periods.update');
     Route::post('/periods/{period}/open', [RatingPeriodController::class, 'open'])->name('periods.open');

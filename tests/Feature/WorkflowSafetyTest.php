@@ -114,6 +114,24 @@ class WorkflowSafetyTest extends TestCase
         });
     }
 
+    public function test_upgrade_reconciles_only_pending_records_and_preserves_history(): void
+    {
+        $record = $this->dianaIpcr();
+        $workflow = app(IpcrWorkflow::class);
+        $workflow->approve($record, $this->user('Daniel'), $this->ratings($record), null);
+        $workflow->approve($record, $this->user('Elena'), $this->ratings($record), null);
+        $record->update(['status' => 'with_hr']); // Old routing after Dean approval.
+        $history = $record->reviews()->get()->toArray();
+        $completed = Ipcr::where('status', 'completed')->firstOrFail();
+        $before = $completed->getRawOriginal();
+        $migration = require database_path('migrations/2026_11_11_100000_align_ipcr_workflow.php');
+        $migration->routePendingRecords();
+        $migration->routePendingRecords();
+        $this->assertSame('with_vpaa', $record->fresh()->status->value);
+        $this->assertSame($history, $record->reviews()->get()->toArray());
+        $this->assertSame($before, $completed->fresh()->getRawOriginal());
+    }
+
     public function test_employee_cannot_create_an_ipcr_when_no_period_is_open(): void
     {
         RatingPeriod::query()->update(['status' => 'closed']);

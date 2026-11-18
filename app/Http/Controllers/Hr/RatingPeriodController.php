@@ -25,6 +25,28 @@ class RatingPeriodController extends Controller
         ]);
     }
 
+    public function roster(RatingPeriod $period): View
+    {
+        $employees = $period->candidates()->with(['college', 'department'])->orderBy('name')->get();
+        return view('hr.periods.roster', [
+            'period' => $period, 'employees' => $employees,
+            'selected' => $period->roster_set_at ? $period->roster()->pluck('users.id')->all() : $employees->modelKeys(),
+        ]);
+    }
+
+    public function saveRoster(Request $request, RatingPeriod $period): RedirectResponse
+    {
+        $ids = $request->validate(['employees' => ['array'], 'employees.*' => ['integer', 'distinct']])['employees'] ?? [];
+        DB::transaction(function () use ($period, $ids, $request) {
+            $period = RatingPeriod::lockForUpdate()->findOrFail($period->id);
+            abort_unless($period->candidates()->whereKey($ids)->count() === count($ids), 422);
+            $period->roster()->sync($ids);
+            $period->forceFill(['roster_set_at' => now()])->save();
+            Audit::log('period.roster', "Updated eligible employee roster for {$period->name}.", $period, ['employees' => $ids], by: $request->user());
+        });
+        return redirect()->route('hr.periods.index')->with('status', 'Eligible employee roster saved.');
+    }
+
     public function store(RatingPeriodRequest $request): RedirectResponse
     {
         $period = RatingPeriod::create([...$request->validated(), 'status' => 'draft']);
@@ -52,6 +74,10 @@ class RatingPeriodController extends Controller
             $other = RatingPeriod::where('status', 'open')->whereKeyNot($period->id)->lockForUpdate()->first();
             if ($other) {
                 throw \Illuminate\Validation\ValidationException::withMessages(['template' => "{$other->name} is still open. Close it before opening {$period->name}."]);
+            }
+            if (! $period->roster_set_at) {
+                $period->roster()->sync($period->candidates()->pluck('id')->all());
+                $period->forceFill(['roster_set_at' => now()])->save();
             }
             $period->update(['status' => 'open', 'opened_at' => now(), 'closed_at' => null]);
         });

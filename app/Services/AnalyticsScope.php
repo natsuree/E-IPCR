@@ -26,7 +26,7 @@ final class AnalyticsScope
         return match ($user->role) {
             Role::DepartmentHead => self::departmentHead($user, $collegeId, $departmentId),
             Role::Dean => self::dean($user, $collegeId, $departmentId),
-            Role::Hr => self::hr($collegeId, $departmentId),
+            Role::Vpaa, Role::Hr => self::hr($collegeId, $departmentId),
             default => abort(403, 'Analytics are only available to reviewers.'),
         };
     }
@@ -74,12 +74,16 @@ final class AnalyticsScope
         return new self($college?->id ?? $department?->college_id, $department?->id, $label);
     }
 
-    /** Limit a query that has the users table joined (or is on users) to this scope. */
-    public function apply(QueryBuilder|EloquentBuilder $query, string $users = 'users'): QueryBuilder|EloquentBuilder
+    /**
+     * Limit a query to this scope. By default the unit columns are the account's
+     * current ones; analytics pass SQL expressions that prefer the unit saved on
+     * the IPCR at submission, so later transfers do not move historical records.
+     */
+    public function apply(QueryBuilder|EloquentBuilder $query, string $college = 'users.college_id', string $department = 'users.department_id'): QueryBuilder|EloquentBuilder
     {
         return $query
-            ->when($this->collegeId, fn ($q) => $q->where("{$users}.college_id", $this->collegeId))
-            ->when($this->departmentId, fn ($q) => $q->where("{$users}.department_id", $this->departmentId));
+            ->when($this->collegeId, fn ($q) => $q->whereRaw("({$college}) = ?", [$this->collegeId]))
+            ->when($this->departmentId, fn ($q) => $q->whereRaw("({$department}) = ?", [$this->departmentId]));
     }
 
     public function isDepartment(): bool

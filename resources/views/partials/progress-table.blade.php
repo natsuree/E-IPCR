@@ -2,7 +2,7 @@
 <div class="table-responsive">
     <table class="table table-eipcr">
         <thead>
-        <tr><th>{{ $unitLabel }}</th><th class="text-end">Employees</th><th class="text-end">Submitted</th><th class="text-end">Completed</th><th class="text-end">Not yet submitted</th><th class="text-end">Average rating</th><th style="min-width:180px">Progress</th></tr>
+        <tr><th>{{ $unitLabel }}</th><th class="text-end">Employees</th><th class="text-end">Submitted</th><th class="text-end">Completed</th><th class="text-end">Not started</th><th class="text-end">Draft</th><th class="text-end">At Head</th><th class="text-end">Further review</th><th class="text-end">Returned</th><th class="text-end">Average rating</th><th style="min-width:180px">Progress</th></tr>
         </thead>
         <tbody>
         @forelse ($rows as $row)
@@ -12,7 +12,11 @@
                 <td class="text-end">{{ $row['employees'] }}</td>
                 <td class="text-end">{{ $row['submitted'] }}</td>
                 <td class="text-end">{{ $row['completed'] }}</td>
-                <td class="text-end">{{ $row['not_submitted'] }}</td>
+                <td class="text-end">{{ $row['counts']['not_started'] }}</td>
+                <td class="text-end">{{ $row['counts']['draft'] }}</td>
+                <td class="text-end">{{ $row['counts']['submitted'] }}</td>
+                <td class="text-end">{{ $row['in_review'] }}</td>
+                <td class="text-end">{{ $row['returned'] }}</td>
                 <td class="text-end">{{ $row['average'] === null ? '—' : number_format($row['average'], 2) }}</td>
                 <td>
                     <div class="small text-secondary mb-1">{{ $row['submitted_pct'] }}% submitted · {{ $row['completed_pct'] }}% completed</div>
@@ -25,7 +29,7 @@
                 </td>
             </tr>
         @empty
-            <tr><td colspan="7"><div class="empty-state"><i class="bi bi-people"></i>No employees match these filters.</div></td></tr>
+            <tr><td colspan="11"><div class="empty-state"><i class="bi bi-people"></i>No employees match these filters.</div></td></tr>
         @endforelse
         </tbody>
     </table>

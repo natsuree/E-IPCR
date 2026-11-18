@@ -32,6 +32,16 @@ class Ipcr extends Model
         'rating_basis',
         'submitted_at',
         'completed_at',
+        'snapshot_taken_at',
+        'snapshot_name',
+        'snapshot_employee_id',
+        'snapshot_position',
+        'snapshot_employee_type',
+        'snapshot_designation',
+        'snapshot_college_id',
+        'snapshot_department_id',
+        'snapshot_college_name',
+        'snapshot_department_name',
     ];
 
     protected function casts(): array
@@ -43,6 +53,7 @@ class Ipcr extends Model
             'rating_basis' => 'array',
             'submitted_at' => 'datetime',
             'completed_at' => 'datetime',
+            'snapshot_taken_at' => 'datetime',
         ];
     }
 
@@ -61,9 +72,82 @@ class Ipcr extends Model
         return $this->belongsTo(IpcrTemplate::class, 'ipcr_template_id');
     }
 
+    /** Template rows replaced when HR published a newer version (entries kept for reference). */
+    public function retiredTargets(): HasMany
+    {
+        return $this->hasMany(IpcrItem::class)->where('retired', true)->whereNull('removed_at');
+    }
+
+    /** Employee-added targets the employee removed after the IPCR had been reviewed (kept for history). */
+    public function removedTargets(): HasMany
+    {
+        return $this->hasMany(IpcrItem::class)->where('retired', true)->whereNotNull('removed_at');
+    }
+
+    // ----------------------------------------------------------------- employee details
+
+    /** Whether the employee's details were saved when the IPCR was (re)submitted. */
+    public function hasEmployeeSnapshot(): bool
+    {
+        return $this->snapshot_taken_at !== null;
+    }
+
+    /** Submitted before details were saved: the current account details are shown instead. */
+    public function usesLegacyEmployeeDetails(): bool
+    {
+        return ! $this->hasEmployeeSnapshot() && $this->status !== IpcrStatus::Draft;
+    }
+
+    public function employeeName(): string
+    {
+        return $this->hasEmployeeSnapshot() ? (string) $this->snapshot_name : $this->user->name;
+    }
+
+    public function employeeNumber(): ?string
+    {
+        return $this->hasEmployeeSnapshot() ? $this->snapshot_employee_id : $this->user->employee_id;
+    }
+
+    public function employeePosition(): ?string
+    {
+        return $this->hasEmployeeSnapshot() ? $this->snapshot_position : $this->user->position;
+    }
+
+    public function employeeType(): ?string
+    {
+        return $this->hasEmployeeSnapshot() ? $this->snapshot_employee_type : ($this->user->employee_type ?? $this->template?->employee_type);
+    }
+
+    public function employeeTypeLabel(): string
+    {
+        return match ($this->employeeType()) {
+            'teaching' => 'Teaching',
+            'nonteaching' => 'Non-teaching',
+            default => '—',
+        };
+    }
+
+    /** "College of Engineering · Computer Engineering" as it was at submission. */
+    public function employeeUnitLabel(): string
+    {
+        if (! $this->hasEmployeeSnapshot()) {
+            return $this->user->unitLabel();
+        }
+
+        return collect([$this->snapshot_college_name, $this->snapshot_department_name])->filter()->implode(' · ') ?: 'No college or office assigned';
+    }
+
+    /** Why the IPCR is waiting with nobody able to act on it, or null. */
+    public function stallReason(): ?string
+    {
+        $role = $this->status->reviewerRole();
+
+        return $role ? app(\App\Services\IpcrWorkflow::class)->missingReviewer($this, $role) : null;
+    }
+
     public function items(): HasMany
     {
-        return $this->hasMany(IpcrItem::class)->orderBy('sort_order')->orderBy('id');
+        return $this->hasMany(IpcrItem::class)->where('retired', false)->orderBy('sort_order')->orderBy('id');
     }
 
     public function reviews(): HasMany
@@ -106,12 +190,14 @@ class Ipcr extends Model
             'ratee' => $cycle->first(),
             'reviewed_by' => $approvedBy(Role::DepartmentHead),
             'noted_by' => $approvedBy(Role::Dean),
+            'vpaa' => $approvedBy(Role::Vpaa),
             'final_rating_by' => $approvedBy(Role::Hr),
         ];
     }
 
     /**
-     * Status-tracking steps: Employee (Submitted), Department Head, Dean/Director, HR Personnel.
+     * Status-tracking steps: Employee (Submitted), Department Head, Dean/Director, VPAA, HR Personnel.
+     * A step that is due but has no active reviewer is shown as "stalled".
      *
      * @return list<array{label: string, state: string, note: string, review: ?IpcrReview}>
      */
@@ -133,7 +219,7 @@ class Ipcr extends Model
         ]];
 
         $reached = $status === IpcrStatus::Completed;
-        foreach (array_reverse([Role::DepartmentHead, Role::Dean, Role::Hr]) as $role) {
+        foreach (array_reverse([Role::DepartmentHead, Role::Dean, Role::Vpaa, Role::Hr]) as $role) {
             $done = $cycle->first(fn (IpcrReview $r) => $r->role === $role && in_array($r->action, ['approved', 'completed'], true));
 
             if ($lastReturn && $lastReturn->role === $role) {
@@ -144,10 +230,11 @@ class Ipcr extends Model
                 $note = 'Approved '.$done->created_at->format('M j, Y');
             } elseif ($status->reviewerRole() === $role) {
                 $state = 'current';
-                $note = 'Reviewing now';
+                $stall = $this->stallReason();
+                $note = $stall ? 'Waiting · '.$stall : 'Reviewing now';
             } elseif ($reached) {
                 $state = 'skipped';
-                $note = 'Not required for this unit';
+                $note = 'No approval recorded';
             } else {
                 $state = 'pending';
                 $note = 'Waiting';
@@ -165,8 +252,8 @@ class Ipcr extends Model
             ];
         }
 
-        // Restore display order: employee, department head, dean, HR.
-        return [$steps[0], $steps[Role::DepartmentHead->value], $steps[Role::Dean->value], $steps[Role::Hr->value]];
+        // Restore display order: employee, department head, dean, VPAA, HR.
+        return [$steps[0], $steps[Role::DepartmentHead->value], $steps[Role::Dean->value], $steps[Role::Vpaa->value], $steps[Role::Hr->value]];
     }
 
     /** IPCRs a user may see in lists: their own, or their unit's when they review. */
@@ -174,6 +261,10 @@ class Ipcr extends Model
     {
         if ($viewer->isEmployee()) {
             return $query->where('user_id', $viewer->id);
+        }
+
+        if ($viewer->role === Role::Vpaa) {
+            return $query->where('status', IpcrStatus::WithVpaa->value);
         }
 
         if ($viewer->role === Role::Admin) {
@@ -192,6 +283,37 @@ class Ipcr extends Model
             return $query->whereRaw('1 = 0');
         }
 
-        return $query->visibleTo($reviewer)->where('status', $status->value);
+        // Nobody reviews their own IPCR.
+        return $query->visibleTo($reviewer)->where('ipcrs.status', $status->value)->where('ipcrs.user_id', '!=', $reviewer->id);
+    }
+
+    /** Reviewer stage => [role, the employee column the reviewer must share]. */
+    public const STAGES = [
+        'submitted' => ['depthead', 'department_id'],
+        'with_dean' => ['dean', 'college_id'],
+        'with_vpaa' => ['vpaa', null],
+        'with_hr' => ['hr', null],
+    ];
+
+    /**
+     * IPCRs waiting at a stage that no active account other than the owner can act on.
+     * Uses the same rule as the workflow (role, active, unit), in SQL.
+     */
+    public function scopeStalled(Builder $query): Builder
+    {
+        return $query->where(function (Builder $any) {
+            foreach (self::STAGES as $status => [$role, $column]) {
+                $any->orWhere(function (Builder $q) use ($status, $role, $column) {
+                    $q->where('ipcrs.status', $status)->whereNotExists(function ($r) use ($role, $column) {
+                        $r->selectRaw('1')->from('users as r')
+                            ->where('r.role', $role)->where('r.active', true)->whereNull('r.deleted_at')
+                            ->whereColumn('r.id', '!=', 'ipcrs.user_id');
+                        if ($column) {
+                            $r->whereRaw("r.{$column} = (select e.{$column} from users as e where e.id = ipcrs.user_id)");
+                        }
+                    });
+                });
+            }
+        });
     }
 }

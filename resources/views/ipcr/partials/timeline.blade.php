@@ -1,4 +1,4 @@
-{{-- Employee → Department Head → Dean/Director → HR. Expects $ipcr. --}}
+{{-- Employee → Department Head → Dean/Director → VPAA → HR. Expects $ipcr. --}}
 @php($icons = ['done' => 'check-lg', 'current' => 'hourglass-split', 'returned' => 'arrow-return-left', 'skipped' => 'dash', 'pending' => 'circle'])
 <div class="timeline" role="list" aria-label="Approval steps">
     @foreach ($ipcr->timeline() as $step)
@@ -9,7 +9,9 @@
             @if ($step['review']?->user && $step['state'] !== 'current')
                 <div class="timeline-meta">{{ $step['review']->user->name }}</div>
             @endif
-            @if ($step['state'] === 'current')
+            @if ($step['state'] === 'current' && str_starts_with($step['note'], 'Waiting · '))
+                <span class="badge rounded-pill mt-1 text-bg-warning">No reviewer assigned</span>
+            @elseif ($step['state'] === 'current')
                 <span class="badge rounded-pill mt-1" style="background:var(--eipcr-gold);color:#2b2300">Current step</span>
             @endif
         </div>

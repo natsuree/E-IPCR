@@ -1,6 +1,6 @@
 @extends('layouts.app')
 @section('title', 'Review Queue')
-@section('heading', ($isHr ? 'HR Review · ' : 'Review IPCR · ').$ipcr->user->name)
+@section('heading', ($isHr ? 'HR Review · ' : 'Review IPCR · ').$ipcr->employeeName())
 @section('subtitle', $isHr
     ? 'Check the ratings, then give final approval or return the IPCR for correction.'
     : 'Rate each indicator, then approve and forward, or return the IPCR for correction.')
@@ -44,7 +44,7 @@
                 @else
                     <strong>Approve &amp; forward</strong> sends it to the next step. Every indicator needs a rating.
                 @endif
-                <strong>Return for correction</strong> sends it back to {{ $ipcr->user->name }}; after resubmission it starts again at the Department Head.
+                <strong>Return for correction</strong> sends it back to {{ $ipcr->employeeName() }}; after resubmission it starts again at the Department Head.
             </p>
             <div class="d-flex flex-wrap gap-2 justify-content-end">
                 <a href="{{ route(auth()->user()->routePrefix().'.queue') }}" class="btn btn-outline-secondary">Back to queue</a>

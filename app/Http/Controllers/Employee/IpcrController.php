@@ -49,7 +49,7 @@ class IpcrController extends Controller
                 : redirect()->route('employee.ipcrs.show', $ipcr);
         }
 
-        $template = $period ? IpcrTemplate::activeFor($period->id, $user->employee_type) : null;
+        $template = $period ? IpcrTemplate::activeFor($period->id, $user->employee_type, $user) : null;
 
         return view('employee.ipcrs.start', [
             'period' => $period,
@@ -89,16 +89,32 @@ class IpcrController extends Controller
 
     public function update(UpdateIpcrRequest $request, Ipcr $ipcr): RedirectResponse
     {
-        $itemIds = $ipcr->items()->pluck('id')->all();
-
-        foreach ($request->validated('items') ?? [] as $id => $values) {
-            if (in_array((int) $id, $itemIds, true)) {
-                $ipcr->items()->whereKey($id)->update(['actual_accomplishment' => $values['actual_accomplishment'] ?? null]);
+        \Illuminate\Support\Facades\DB::transaction(function () use ($request, $ipcr) {
+            $locked = Ipcr::lockForUpdate()->findOrFail($ipcr->id);
+            $this->authorize('update', $locked);
+            foreach ($request->validated('items') ?? [] as $id => $values) {
+                $locked->items()->whereKey($id)->update(\Illuminate\Support\Arr::only($values, ['actual_accomplishment', 'evidence_url']));
             }
-        }
-        $ipcr->touch();
+            foreach ($request->validated('personal', []) as $id => $changes) {
+                $item = $locked->items()->whereNotNull('employee_target_key')->find($id);
+                abort_unless($item, 403);
+                $item->update($changes);
+            }
+            if ($request->filled('new_target.indicator')) {
+                $entry = $request->validated('new_target');
+                $locked->items()->firstOrCreate(['employee_target_key' => $entry['key']], [
+                    'section' => $entry['section'],
+                    'program_outcome' => $entry['program_outcome'] ?? null,
+                    'indicator' => $entry['indicator'],
+                    'target' => $entry['target'],
+                    'sort_order' => $locked->items()->where('section', $entry['section'])->max('sort_order') + 1,
+                ]);
+            }
+            $locked->touch();
+        });
 
         return match ($request->validated('action')) {
+            'add_target' => redirect()->route('employee.ipcrs.edit', $ipcr)->with('status', 'Additional target saved.'),
             'print' => redirect()->route('employee.ipcrs.print', $ipcr),
             'submit' => redirect()->route('employee.ipcrs.confirm', $ipcr),
             default => redirect()->route('employee.ipcrs.edit', $ipcr)->with('status', 'Draft saved.'),
@@ -110,23 +126,40 @@ class IpcrController extends Controller
         $this->authorize('update', $ipcr);
         $ipcr = $this->loadFull($ipcr);
 
-        $missing = $ipcr->items->filter(fn ($i) => trim((string) $i->actual_accomplishment) === '');
-        if ($missing->isNotEmpty()) {
+        // Every empty accomplishment is reported against its own field (section and number as shown on the form).
+        $missing = $this->workflow->missingAccomplishments($ipcr);
+        if ($missing) {
             return redirect()->route('employee.ipcrs.edit', $ipcr)->withErrors([
-                'ipcr' => 'Enter your actual accomplishment for every indicator before submitting ('.$missing->count().' still empty).',
-            ]);
+                'ipcr' => 'Enter your actual accomplishment for every indicator before submitting ('.count($missing).' still empty). The empty fields are highlighted below; everything you entered was saved.',
+            ] + $missing);
         }
 
         return view('employee.ipcrs.confirm', [
             'ipcr' => $ipcr,
-            'firstStep' => $this->workflow->nextReviewer($ipcr, null)[0],
+            'firstStep' => \App\Enums\Role::DepartmentHead,
+            'blocked' => $this->workflow->missingReviewer($ipcr, \App\Enums\Role::DepartmentHead),
         ]);
+    }
+
+    /** Remove a target the employee added (HR template rows are refused). */
+    public function removeTarget(Request $request, Ipcr $ipcr, int $item): RedirectResponse
+    {
+        $this->authorize('update', $ipcr);
+        $removed = $this->workflow->removeTarget($ipcr, $item, $request->user());
+
+        return redirect()->route('employee.ipcrs.edit', $ipcr)
+            ->with('status', 'Additional target "'.\Illuminate\Support\Str::limit($removed->indicator, 60).'" was removed.');
     }
 
     public function submit(Request $request, Ipcr $ipcr): RedirectResponse
     {
         $this->authorize('update', $ipcr);
-        $this->workflow->submit($ipcr, $request->user());
+        try {
+            $this->workflow->submit($ipcr, $request->user());
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Back to the form, where every empty field is highlighted.
+            return redirect()->route('employee.ipcrs.edit', $ipcr)->withErrors($e->errors());
+        }
 
         return redirect()->route('employee.tracking', ['ipcr' => $ipcr->id])
             ->with('status', 'Your IPCR was submitted.');
@@ -168,6 +201,6 @@ class IpcrController extends Controller
 
     private function loadFull(Ipcr $ipcr): Ipcr
     {
-        return $ipcr->load(['user.college', 'user.department', 'period', 'template', 'items', 'reviews.user']);
+        return $ipcr->load(['user.college', 'user.department', 'period', 'template', 'items', 'reviews.user', 'retiredTargets', 'removedTargets']);
     }
 }

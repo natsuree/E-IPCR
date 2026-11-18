@@ -18,9 +18,10 @@ class UserRequest extends FormRequest
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user?->id)],
             'employee_id' => ['nullable', 'string', 'max:50', Rule::unique('users', 'employee_id')->ignore($user?->id)],
             'role' => ['required', Rule::enum(Role::class)],
+            'designation' => ['nullable', 'string', 'max:255'],
             'position' => ['nullable', 'string', 'max:255'],
             'college_id' => [
-                Rule::requiredIf(fn () => $this->input('role') !== Role::Admin->value),
+                Rule::requiredIf(fn () => ! in_array($this->input('role'), [Role::Admin->value, Role::Vpaa->value], true)),
                 'nullable', 'integer',
                 Rule::exists('colleges', 'id')->where('active', true),
             ],

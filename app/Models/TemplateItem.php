@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class TemplateItem extends Model
 {
-    protected $fillable = ['ipcr_template_id', 'section', 'program_outcome', 'indicator', 'target', 'sort_order'];
+    protected $fillable = ['ipcr_template_id', 'section', 'program_outcome', 'indicator', 'target', 'sort_order', 'copied_item_id'];
 
     public function template(): BelongsTo
     {

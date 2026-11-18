@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>IPCR · {{ $ipcr->user->name }} · {{ $ipcr->period->name }}</title>
+    <title>IPCR · {{ $ipcr->employeeName() }} · {{ $ipcr->period->name }}</title>
     @include('layouts.partials.head')
 </head>
 <body style="background:#fff">

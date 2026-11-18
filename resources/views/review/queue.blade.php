@@ -1,7 +1,7 @@
 @extends('layouts.app')
 @section('title', 'Review Queue')
 @section('subtitle', $grouped !== null
-    ? 'IPCRs waiting for final HR approval, grouped by college/office, then department, then employee.'
+    ? 'IPCRs waiting at your approval stage, grouped by college/office, then department, then employee.'
     : 'IPCRs waiting at your step, from employees in your unit.')
 
 @section('content')

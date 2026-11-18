@@ -21,7 +21,7 @@
                 <p class="small">The first row must be the column names:</p>
                 <code class="d-block small mb-2">{{ implode(', ', \App\Services\UserImporter::COLUMNS) }}</code>
                 <ul class="small mb-2">
-                    <li><strong>role</strong>: Teaching Employee, Non-Teaching Employee, Department Head, Dean/Director, HR Personnel or Administrator.</li>
+                    <li><strong>role</strong>: Teaching Employee, Non-Teaching Employee, Department Head, Dean/Director, VPAA, HR Personnel or Administrator.</li>
                     <li><strong>employee_type</strong>: Teaching or Non-teaching (for employees; may be left blank).</li>
                     <li><strong>college_office</strong>: the exact name or code from Colleges &amp; Offices.</li>
                     <li><strong>department</strong>: required for Department Heads; leave blank for offices.</li>

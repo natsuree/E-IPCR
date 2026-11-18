@@ -7,6 +7,7 @@ enum IpcrStatus: string
     case Draft = 'draft';
     case Submitted = 'submitted';
     case WithDean = 'with_dean';
+    case WithVpaa = 'with_vpaa';
     case WithHr = 'with_hr';
     case Returned = 'returned';
     case Completed = 'completed';
@@ -17,6 +18,7 @@ enum IpcrStatus: string
             self::Draft => 'Draft',
             self::Submitted => 'Submitted',
             self::WithDean => 'With Dean/Director',
+            self::WithVpaa => 'With VPAA',
             self::WithHr => 'With HR',
             self::Returned => 'Returned',
             self::Completed => 'Completed',
@@ -28,7 +30,7 @@ enum IpcrStatus: string
     {
         return match ($this) {
             self::Draft => 'badge-status-draft',
-            self::Submitted, self::WithDean, self::WithHr => 'badge-status-review',
+            self::Submitted, self::WithDean, self::WithVpaa, self::WithHr => 'badge-status-review',
             self::Returned => 'badge-status-returned',
             self::Completed => 'badge-status-completed',
         };
@@ -40,6 +42,7 @@ enum IpcrStatus: string
         return match ($this) {
             self::Submitted => Role::DepartmentHead,
             self::WithDean => Role::Dean,
+            self::WithVpaa => Role::Vpaa,
             self::WithHr => Role::Hr,
             default => null,
         };

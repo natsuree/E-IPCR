@@ -25,6 +25,13 @@ class AnalyticsController extends Controller
         $user = $request->user();
         $analytics = $this->analytics($request);
         $filters = $request->filters();
+        if ($request->boolean('preview')) {
+            return view('review.report-preview', [
+                'route' => $user->routePrefix().'.analytics', 'analytics' => $analytics,
+                'filters' => $filters, 'summary' => $analytics->summary(),
+                'rows' => $analytics->employeeTable(sort: $filters['sort'] ?? 'name', direction: $filters['dir'] ?? 'asc')->cursor(),
+            ]);
+        }
 
         $table = $analytics->employeeTable($filters['status'] ?? null, $filters['q'] ?? null, $filters['sort'] ?? 'name', $filters['dir'] ?? 'asc')
             ->paginate(20, pageName: 'page')->withQueryString()->fragment('employees');
@@ -66,6 +73,6 @@ class AnalyticsController extends Controller
         $scope = AnalyticsScope::forUser($request->user(), $request->intOrNull('college'), $request->intOrNull('department'));
         $period = $request->filled('period') ? RatingPeriod::findOrFail($request->integer('period')) : RatingPeriod::current();
 
-        return new IpcrAnalytics($scope, $period, $request->validated('type'));
+        return new IpcrAnalytics($scope, $period, $request->validated('type'), $request->validated('status'), $request->validated('q'));
     }
 }

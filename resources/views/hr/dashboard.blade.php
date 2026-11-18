@@ -18,6 +18,8 @@
 
     @include('partials.overdue')
 
+    @include('partials.stalled')
+
     <x-card title="Progress by college and office" flush>
         @include('partials.progress-table', ['rows' => $byCollege, 'unitLabel' => 'College / office'])
     </x-card>

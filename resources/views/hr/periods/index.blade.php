@@ -27,6 +27,7 @@
                                     <td class="text-end small">{{ $period->ipcrs_count }} <span class="text-secondary">({{ $period->completed_count }} completed)</span></td>
                                     <td class="text-end text-nowrap">
                                         <a href="{{ route('hr.periods.index', ['edit' => $period->id]) }}" class="btn btn-sm btn-outline-primary">Edit</a>
+                                        <a href="{{ route('hr.periods.roster', $period) }}" class="btn btn-sm btn-outline-primary">Employee roster</a>
                                         <a href="{{ route('hr.templates', ['period' => $period->id]) }}" class="btn btn-sm btn-outline-primary">Templates</a>
                                         @if ($period->isOpen())
                                             <form method="POST" action="{{ route('hr.periods.close', $period) }}" class="d-inline" onsubmit="return confirm('Close {{ $period->name }}? Employees will not be able to create new IPCRs for it.')">

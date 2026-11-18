@@ -23,7 +23,7 @@ class QueueController extends Controller
     {
         $user = $request->user();
         $filters = $request->filters();
-        $isHr = $user->role === Role::Hr;
+        $isHr = $user->hasRole(Role::Hr, Role::Vpaa);
 
         $query = Ipcr::awaiting($user)
             ->with(['user.college', 'user.department', 'period'])
@@ -56,7 +56,7 @@ class QueueController extends Controller
             'filters' => $filters,
             'colleges' => $isHr ? College::orderBy('name')->get() : collect(),
             'departments' => match ($user->role) {
-                Role::Hr => Department::with('college')->orderBy('name')->get(),
+                Role::Hr, Role::Vpaa => Department::with('college')->orderBy('name')->get(),
                 Role::Dean => Department::where('college_id', $user->college_id)->orderBy('name')->get(),
                 default => collect(),
             },

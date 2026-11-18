@@ -9,7 +9,7 @@
             <x-card title="Submit your IPCR for {{ $ipcr->period->name }}?">
                 <dl class="row mb-3">
                     <dt class="col-sm-4">Employee</dt><dd class="col-sm-8">{{ $ipcr->user->name }}</dd>
-                    <dt class="col-sm-4">Unit</dt><dd class="col-sm-8">{{ $ipcr->user->unitLabel() }}</dd>
+                    <dt class="col-sm-4">Unit</dt><dd class="col-sm-8">{{ $ipcr->user->unitLabel() }} <span class="small text-secondary">(saved with the IPCR when you submit)</span></dd>
                     <dt class="col-sm-4">Template</dt><dd class="col-sm-8">{{ $ipcr->template->employeeTypeLabel() }} · Version {{ $ipcr->template->version }}</dd>
                     @foreach (\App\Models\Ipcr::SECTIONS as $key => $label)
                         <dt class="col-sm-4">{{ $label }}</dt><dd class="col-sm-8">{{ $ipcr->items->where('section', $key)->count() }} indicators, all with accomplishments</dd>
@@ -18,13 +18,18 @@
                 </dl>
                 <div class="notice-soft mb-3 small">
                     After you submit, you cannot edit the IPCR unless a reviewer returns it to you.
-                    The route is Department Head → Dean/Director → HR. HR gives the final approval.
+                    The route is Department Head → Dean/Director → VPAA → HR. HR gives the final approval.
                 </div>
+                @if ($blocked)
+                    <div class="alert alert-warning" role="alert">
+                        <i class="bi bi-exclamation-triangle me-1"></i> <strong>Your IPCR cannot be submitted yet.</strong> {{ $blocked }} Your entries are saved.
+                    </div>
+                @endif
                 <div class="d-flex flex-wrap gap-2 justify-content-end">
                     <a href="{{ route('employee.ipcrs.edit', $ipcr) }}" class="btn btn-outline-secondary">Go back and edit</a>
                     <form method="POST" action="{{ route('employee.ipcrs.submit', $ipcr) }}">
                         @csrf
-                        <button class="btn btn-primary"><i class="bi bi-send"></i> Confirm and submit</button>
+                        <button class="btn btn-primary" @disabled($blocked)><i class="bi bi-send"></i> Confirm and submit</button>
                     </form>
                 </div>
             </x-card>

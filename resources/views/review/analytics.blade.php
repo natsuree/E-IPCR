@@ -13,11 +13,12 @@
 @section('actions')
     <div class="d-flex flex-wrap gap-2 no-print">
         <a class="btn btn-gold" href="{{ route($prefix.'.analytics.export', $exportFilters) }}"><i class="bi bi-download"></i> Export CSV</a>
-        <button type="button" class="btn btn-outline-primary" onclick="window.print()"><i class="bi bi-printer"></i> Print / Save as PDF</button>
+        <a class="btn btn-outline-primary" href="{{ route($route, $exportFilters + ['preview' => 1]) }}"><i class="bi bi-printer"></i> Print / Save as PDF</a>
     </div>
 @endsection
 
 @section('content')
+    @if ($period && ! $period->roster_set_at)<p class="small text-secondary">Provisional roster based on active employee accounts. HR can confirm period assignments in Rating Periods.</p>@endif
     {{-- Filters --}}
     <x-card title="Filters" class="no-print">
         <form method="GET" action="{{ route($route) }}" class="row g-3 align-items-end">
@@ -87,7 +88,7 @@
         </div>
         <p class="small text-secondary mb-4">
             Percentages are out of all {{ $summary['employees'] }} employees in {{ $analytics->scope->label }}{{ ($filters['type'] ?? null) ? ' ('.($filters['type'] === 'teaching' ? 'Teaching' : 'Non-teaching').')' : '' }}, not just those who submitted.
-            The status and employee search filters narrow the tables below; they do not change these cards.
+            Status and name filters apply to the figures and employee list.
             Average ratings count completed IPCRs only and use the rating stored when HR approved each one.
         </p>
 
@@ -120,7 +121,7 @@
                         @endforeach
                     </div>
                     @if (! $isDean)
-                        <p class="small text-secondary mt-2 mb-0"><i class="bi bi-arrow-right-circle"></i> {{ $summary['passed_head'] }} IPCR(s) have passed your step (with the Dean/Director, with HR or completed).</p>
+                        <p class="small text-secondary mt-2 mb-0"><i class="bi bi-arrow-right-circle"></i> {{ $summary['passed_head'] }} IPCR(s) have passed your step (with the Dean/Director, VPAA, HR or completed).</p>
                     @endif
                 </x-card>
             </div>
@@ -291,7 +292,8 @@
         @endif
 
         {{-- Employee table --}}
-        <x-card title="Employees ({{ $table->total() }})" flush id="employees">
+        @include('partials.leaders')
+    <x-card title="Employees ({{ $table->total() }})" flush id="employees">
             @if ($table->isEmpty())
                 <div class="empty-state"><i class="bi bi-people"></i>No employees match these filters.</div>
             @else

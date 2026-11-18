@@ -1,9 +1,8 @@
-<<<<<<< HEAD
 # E-IPCR · Mariano Marcos State University
 
 E-IPCR is the web system for preparing, submitting, reviewing and approving the **Individual Performance Commitment and Review (IPCR)** form at Mariano Marcos State University (MMSU), Batac City, Ilocos Norte.
 
-**Approval route:** Employee → Department Head → Dean/Director → HR → Completed. HR gives the final approval. A returned IPCR goes back to the employee and starts again at the Department Head when resubmitted.
+**Approval route:** Employee → Department Head → Dean/Director → VPAA → HR → Completed. HR gives the final approval. A returned IPCR goes back to the employee and starts again at the Department Head when resubmitted.
 
 **Stack:** Laravel 12 (PHP 8.2+), Blade, Bootstrap 5 with SCSS through Vite, Chart.js, `barryvdh/laravel-dompdf` for PDFs. It runs on SQLite locally; MySQL or MariaDB is recommended for production.
 
@@ -54,6 +53,7 @@ Password for every demo account: **`password`**. The login page lists them in a 
 | Non-Teaching Employee | Luis Navarro | luis.navarro@mmsu.test | Records Office |
 | Department Head | Daniel Ramos | daniel.ramos@mmsu.test | College of Engineering · Computer Engineering |
 | Dean/Director | Elena Flores | elena.flores@mmsu.test | College of Engineering |
+| VPAA | Andrea Cruz | andrea.cruz@mmsu.test | Institution-wide approval stage |
 | HR Personnel | Mika Santos | mika.santos@mmsu.test | Human Resource Management Office |
 | Administrator | Alex Rivera | alex.rivera@mmsu.test | System administration |
 
@@ -62,11 +62,11 @@ Also: Diana Torres, Leo Pascual, Mia Domingo (Computer Engineering), Nina Aquino
 ### Demo walkthrough
 
 1. **Submit.** Log in as Sofia → **Create IPCR** → fill in every Actual Accomplishment → **Save draft** → **Submit IPCR** → **Confirm and submit**. Status Tracking shows the Department Head as the current step.
-2. **Approve.** As Daniel Ramos, then Elena Flores: Review Queue → **Review** → rate every indicator → **Approve & forward**. As Mika Santos: Review Queue → Review → **Approve (final)**. The IPCR is **Completed** with a final rating; Sofia gets a notification at each step.
+2. **Approve.** As Daniel Ramos, Elena Flores and then Andrea Cruz (VPAA): Review Queue → **Review** → rate every indicator → **Approve & forward**. As Mika Santos: Review Queue → Review → **Approve (final)**. The IPCR is **Completed** with a final rating; Sofia gets a notification at each step.
 3. **Return and resubmit.** As Daniel, review Diana Torres's IPCR, write remarks and click **Return for correction**. As Diana, Status Tracking shows the remarks and **Revise and resubmit**; submitting again sends it back to the Department Head.
 4. **Records.** Open **IPCR Records** as Daniel (15 records), Elena (25) and Mika (28). Each sees only their own scope. View a record and click **Download PDF**.
 5. **Analytics.** As Daniel (`depthead.analytics`) or Elena (`dean.analytics`), open **Analytics**: summary cards, submission progress and deadline, rating distribution, section averages, the five lowest-rated indicators, trends across periods, your own review step, a department comparison (Dean/Director), and the employee and not-submitted tables. Filters stay in the address bar; **Export CSV** and **Print / Save as PDF** use the same filters.
-6. **Template versions.** As Mika, **IPCR Templates** → **Start new draft** → **+ Add indicator** → **Publish template**. A new IPCR (log in as `mia.domingo@mmsu.test` → Create IPCR) uses the new version; Sofia's IPCR keeps the version it was created with.
+6. **Template versions.** As Mika, **IPCR Templates** → **Start new draft** → **+ Add indicator** → **Publish template**. A new IPCR (log in as `mia.domingo@mmsu.test` → Create IPCR) and every unsubmitted draft of the same period and type move to the new version. Their accomplishments, MOV links and employee-added targets are kept; template rows that no longer apply are kept as retired entries. Submitted, returned and completed IPCRs (for example Diana Torres's) keep the version they had.
 7. **HR settings.** **Rating Periods** (create, open, close; one period open at a time) and **Rating Settings** (method, section weights and adjectival ranges, with change history).
 8. **Administration.** As Alex: **Users** (add, edit, deactivate, resend the set-password email, **Import CSV** with a row-by-row preview), **Colleges & Offices**, and the **Audit Log**.
 
@@ -164,16 +164,14 @@ The database holds personal and performance data covered by the Data Privacy Act
 ## How the rules are enforced
 
 - **Roles:** each role has its own route group (`employee.*`, `depthead.*`, `dean.*`, `hr.*`, `admin.*`) behind the `role` middleware. Other roles get 403; guests are sent to the login page; deactivated users are signed out.
-- **Analytics:** `App\Services\IpcrAnalytics` (grouped SQL counts and averages) with `App\Services\AnalyticsScope` serves HR Reports, the Department Head and Dean/Director Analytics pages and the dashboards. The scope comes from the signed-in user’s own unit and is applied in the query; a department or college ID outside it returns 403. "Employees" means active Teaching and Non-Teaching accounts in the scope that existed by the end of the rating period. Averages use the final rating stored on completed IPCRs only.
+- **Analytics:** `App\Services\IpcrAnalytics` (grouped SQL counts and averages) with `App\Services\AnalyticsScope` serves HR Reports, the Department Head and Dean/Director Analytics pages and the dashboards. The scope comes from the signed-in user’s own unit and is applied in the query; a department or college ID outside it returns 403. HR confirms eligible employees in Rating Periods → Employee roster. Periods without a saved roster show a provisional estimate based on active employee accounts existing by period end. Averages use the final rating stored on completed IPCRs only.
 - **Scope:** `App\Policies\IpcrPolicy` plus the `visibleTo` / `awaiting` query scopes. Employees see only their own IPCRs; Department Heads their department; Deans/Directors their college; HR all units; the Administrator no IPCR content. Changing an ID in the URL returns 403.
 - **Queues follow the role, not the person.** A queue belongs to whoever currently holds the Department Head or Dean/Director role for that unit. When the Administrator reassigns the role, waiting IPCRs move with it.
-- **Units with no Department Head or Dean/Director account** skip that step, and the review history says why. HR always reviews.
+- **Unstaffed reviewer stages** remain pending. Assign an active reviewer for that department or college. Only HR completes the record after VPAA approval.
 - **Workflow safety:** submit, approve, return and publish each run in a database transaction, re-read the record, and change the status only if it is still what it was (a conditional update). A double click or two reviewers acting at once cannot act on the same step twice.
-- **Template versions:** published versions are never edited. Changes go into a new draft version. Creating an IPCR copies the template's items into `ipcr_items`, so later template changes never alter it.
+- **Template versions:** published versions are never edited. Changes go into a new draft version. Creating an IPCR copies the template's items into `ipcr_items`. Publishing a version moves unsubmitted drafts of matching employees to it (`App\Services\DraftTemplateUpdate`), keeping accomplishments, MOV links and employee-added targets; submitted, returned and completed IPCRs keep their version.
 - **Final rating:** computed from the HR-editable **Rating Settings** (method, section weights, adjectival ranges) and stored on the IPCR, together with the settings used, when HR approves it. Later settings changes do not alter completed IPCRs.
 - **Notifications:** every workflow event creates an in-app notification at once and a queued email.
 - **Audit log:** sign-ins (including failed attempts and lockouts), account and unit changes, every IPCR action, template changes, rating period and settings changes. Passwords and tokens are never recorded.
 - **Soft deletes** on users, templates and IPCRs; units and users are deactivated, not deleted.
-=======
-# E-IPCR
->>>>>>> 8bdd6ef0153a5be5c61e2b9c23afe0bdad5ae797
+

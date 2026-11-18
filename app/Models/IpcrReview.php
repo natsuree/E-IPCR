@@ -16,11 +16,14 @@ class IpcrReview extends Model
         'completed' => 'Approved (final)',
     ];
 
-    protected $fillable = ['ipcr_id', 'user_id', 'role', 'action', 'remarks', 'created_at', 'updated_at'];
+    /** Reviewer decisions; these carry per-target ratings. */
+    public const DECISIONS = ['approved', 'returned', 'completed'];
+
+    protected $fillable = ['ipcr_id', 'user_id', 'role', 'action', 'remarks', 'item_ratings', 'created_at', 'updated_at'];
 
     protected function casts(): array
     {
-        return ['role' => Role::class];
+        return ['role' => Role::class, 'item_ratings' => 'array'];
     }
 
     public function ipcr(): BelongsTo
@@ -36,5 +39,16 @@ class IpcrReview extends Model
     public function actionLabel(): string
     {
         return self::ACTIONS[$this->action] ?? ucfirst($this->action);
+    }
+
+    public function isDecision(): bool
+    {
+        return in_array($this->action, self::DECISIONS, true);
+    }
+
+    /** A decision saved before per-target ratings were recorded with each review. */
+    public function lacksRatingSnapshot(): bool
+    {
+        return $this->isDecision() && $this->item_ratings === null;
     }
 }

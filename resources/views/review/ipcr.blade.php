@@ -1,6 +1,6 @@
 @extends('layouts.app')
 @section('title', 'Analytics')
-@section('heading', $ipcr->user->name.' · '.$ipcr->period->name)
+@section('heading', $ipcr->employeeName().' · '.$ipcr->period->name)
 @section('subtitle', 'Read-only view of this IPCR.')
 
 @section('actions')

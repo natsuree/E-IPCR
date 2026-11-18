@@ -26,8 +26,10 @@ class NotificationController extends Controller
         $route = $item->data['route'] ?? null;
         $ownPrefix = $user->routePrefix().'.';
 
-        // Only follow links into the user's own area.
-        if ($route && str_starts_with($route, $ownPrefix) && Route::has($route)) {
+        // Only follow links into the user's own area, or to their own IPCR pages
+        // (kept after a role change; IpcrPolicy still checks ownership).
+        $ownIpcrPages = ['employee.tracking', 'employee.ipcrs.show', 'employee.ipcrs.edit'];
+        if ($route && (str_starts_with($route, $ownPrefix) || in_array($route, $ownIpcrPages, true)) && Route::has($route)) {
             return redirect()->route($route, $item->data['params'] ?? []);
         }
 

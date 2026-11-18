@@ -31,6 +31,7 @@ class RoleAccessTest extends TestCase
             'luis.navarro@mmsu.test' => 'employee.dashboard',
             'daniel.ramos@mmsu.test' => 'depthead.dashboard',
             'elena.flores@mmsu.test' => 'dean.dashboard',
+            'andrea.cruz@mmsu.test' => 'vpaa.dashboard',
             'mika.santos@mmsu.test' => 'hr.dashboard',
             'alex.rivera@mmsu.test' => 'admin.dashboard',
         ];

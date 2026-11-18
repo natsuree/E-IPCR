@@ -38,6 +38,10 @@ class Navigation
                 ['IPCR Records', 'dean.records', 'archive', ['dean.records', 'dean.records.*']],
                 ['Analytics', 'dean.analytics', 'bar-chart-line', ['dean.analytics', 'dean.ipcrs.show']],
             ],
+            Role::Vpaa => [
+                ['Dashboard', 'vpaa.dashboard', 'speedometer2', ['vpaa.dashboard']],
+                ['Review Queue', 'vpaa.queue', 'inbox', ['vpaa.queue', 'vpaa.review']],
+            ],
             Role::Hr => [
                 ['Dashboard', 'hr.dashboard', 'speedometer2', ['hr.dashboard']],
                 ['Review Queue', 'hr.queue', 'inbox', ['hr.queue', 'hr.review']],
@@ -54,6 +58,12 @@ class Navigation
                 ['Audit Log', 'admin.audit', 'journal-text', ['admin.audit']],
             ],
         };
+
+        // An account that changed role but still owns IPCRs keeps access to them.
+        if (! $user->isEmployee() && $user->ipcrs()->exists()) {
+            $items[] = ['My IPCRs', 'employee.ipcrs.index', 'folder2-open', ['employee.ipcrs.*']];
+            $items[] = ['My Status Tracking', 'employee.tracking', 'signpost-split', ['employee.tracking']];
+        }
 
         if ($user->role !== Role::Admin) {
             $items[] = ['Notifications', $p.'.notifications', 'bell', [$p.'.notifications'], null, false, $unread];

@@ -37,6 +37,8 @@ class IpcrTemplate extends Model
     protected $fillable = [
         'rating_period_id',
         'employee_type',
+        'college_id',
+        'designation',
         'version',
         'status',
         'published_at',
@@ -92,10 +94,13 @@ class IpcrTemplate extends Model
     }
 
     /** The version new IPCRs use: the highest published version for the period and type. */
-    public static function activeFor(int $periodId, string $employeeType): ?self
+    public static function activeFor(int $periodId, string $employeeType, ?User $owner = null): ?self
     {
         return static::for($periodId, $employeeType)
             ->where('status', 'published')
+            ->where(fn ($q) => $q->whereNull('college_id')->when($owner?->college_id, fn ($q, $id) => $q->orWhere('college_id', $id)))
+            ->where(fn ($q) => $q->whereNull('designation')->when($owner?->designation, fn ($q, $name) => $q->orWhere('designation', $name)))
+            ->orderByRaw('(college_id is not null) + (designation is not null) desc')
             ->orderByDesc('version')
             ->first();
     }
@@ -103,7 +108,9 @@ class IpcrTemplate extends Model
     public function isActive(): bool
     {
         return $this->isPublished()
-            && static::activeFor($this->rating_period_id, $this->employee_type)?->is($this);
+            && static::for($this->rating_period_id, $this->employee_type)->where('status', 'published')
+                ->where('college_id', $this->college_id)->where('designation', $this->designation)
+                ->orderByDesc('version')->value('id') === $this->id;
     }
 
     public function employeeTypeLabel(): string

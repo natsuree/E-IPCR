@@ -1,6 +1,6 @@
 @extends('layouts.app')
 @section('title', 'IPCR Templates')
-@section('subtitle', 'Set the IPCR content for each rating period and employee type. Published versions are what new IPCRs use.')
+@section('subtitle', 'Set the IPCR content for each rating period and employee type. Publishing updates matching employee drafts and new IPCRs.')
 
 @php
     $editable = $template?->isDraft();
@@ -9,7 +9,7 @@
 
 @section('actions')
     @if ($template && $editable)
-        <form method="POST" action="{{ route('hr.templates.publish', $template) }}" onsubmit="return confirm('Publish Version {{ $template->version }}? New IPCRs for {{ $period->name }} will use it. IPCRs already started keep their version.')">
+        <form method="POST" action="{{ route('hr.templates.publish', $template) }}" onsubmit="return confirm('Publish Version {{ $template->version }}? New IPCRs and unsubmitted drafts for {{ $period->name }} will use it (entries and added targets are kept). Submitted, returned and completed IPCRs keep their version.')">
             @csrf
             <button class="btn btn-gold"><i class="bi bi-megaphone"></i> Publish template</button>
         </form>
@@ -58,7 +58,7 @@
         <div class="notice-soft d-flex flex-wrap align-items-center gap-3 mb-4">
             <div>
                 <strong>{{ $template->employeeTypeLabel() }} · {{ $period->name }} · {{ $template->versionLabel() }}</strong>
-                @if ($active?->is($template))<span class="badge bg-success ms-1">In use for new IPCRs</span>@endif
+                @if ($template->isActive())<span class="badge bg-success ms-1">In use for drafts and new IPCRs</span>@endif
                 <div class="small text-secondary">
                     {{ $template->copiedFrom ? 'Copied from '.app(\App\Services\TemplateManager::class)->describe($template->copiedFrom).'.' : 'Original version.' }}
                     {{ $template->published_at ? 'Published '.$template->published_at->format('M j, Y g:i A').'.' : 'Not published yet.' }}
@@ -83,6 +83,15 @@
                 <fieldset @disabled(! $editable)>
                     <div class="row g-3">
                         <div class="col-md-4">
+                            <label for="template-college" class="form-label">College or office</label>
+                            <select id="template-college" class="form-select mb-2" name="college_id">
+                                <option value="">All units</option>
+                                @foreach ($colleges as $college)
+                                    <option value="{{ $college->id }}" @selected(old('college_id', $template->college_id) == $college->id)>{{ $college->name }}</option>
+                                @endforeach
+                            </select>
+                            <label for="template-designation" class="form-label">Administrative designation (optional)</label>
+                            <input id="template-designation" class="form-control mb-2" name="designation" value="{{ old('designation', $template->designation) }}">
                             <label for="commitment_period" class="form-label small fw-semibold">Commitment period</label>
                             <input id="commitment_period" name="commitment_period" class="form-control @error('commitment_period') is-invalid @enderror" value="{{ old('commitment_period', $template->commitment_period) }}">
                             @error('commitment_period')<div class="invalid-feedback">{{ $message }}</div>@enderror

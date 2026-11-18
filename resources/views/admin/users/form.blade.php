@@ -28,6 +28,8 @@
                             @error('employee_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-md-6">
+                            <label for="designation" class="form-label">Administrative designation</label>
+                            <input id="designation" name="designation" class="form-control mb-2" value="{{ old('designation', $user->designation) }}">
                             <label for="position" class="form-label fw-semibold">Position</label>
                             <input id="position" name="position" class="form-control @error('position') is-invalid @enderror" value="{{ old('position', $user->position) }}">
                             @error('position')<div class="invalid-feedback">{{ $message }}</div>@enderror

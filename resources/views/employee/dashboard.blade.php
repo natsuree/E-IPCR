@@ -52,7 +52,7 @@
                 <ol class="mb-0 ps-3">
                     <li class="mb-1"><strong>Create</strong> your IPCR. It is built from the template HR published for your employee type.</li>
                     <li class="mb-1"><strong>Fill in</strong> the actual accomplishment for every indicator in the Strategic, Core and Support Functions.</li>
-                    <li class="mb-1"><strong>Submit</strong>. It goes to your Department Head, then the Dean/Director, then HR for final approval.</li>
+                    <li class="mb-1"><strong>Submit</strong>. It goes to your Department Head, then the Dean/Director and VPAA, then HR for final approval.</li>
                     <li><strong>Track</strong> each step. If a reviewer returns it, revise and resubmit; it starts again at the Department Head.</li>
                 </ol>
             </x-card>

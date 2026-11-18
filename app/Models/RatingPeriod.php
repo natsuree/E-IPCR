@@ -45,6 +45,16 @@ class RatingPeriod extends Model
         return $this->hasMany(Ipcr::class);
     }
 
+    public function roster(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'period_employees');
+    }
+
+    public function candidates()
+    {
+        return User::employees()->where('active', true)->where('created_at', '<=', $this->ends_on->copy()->endOfDay());
+    }
+
     public function templates(): HasMany
     {
         return $this->hasMany(IpcrTemplate::class);

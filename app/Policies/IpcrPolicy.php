@@ -16,6 +16,7 @@ class IpcrPolicy
         }
 
         return $user->role->isReviewer()
+            && ($user->role !== \App\Enums\Role::Vpaa || $ipcr->status === IpcrStatus::WithVpaa)
             && $ipcr->status !== IpcrStatus::Draft
             && $user->covers($ipcr->user);
     }
@@ -26,10 +27,11 @@ class IpcrPolicy
         return $ipcr->user_id === $user->id && $ipcr->status->isEditableByEmployee();
     }
 
-    /** Reviewers act only on IPCRs at their own step and inside their scope. */
+    /** Reviewers act only on IPCRs at their own step and inside their scope, and never on their own. */
     public function review(User $user, Ipcr $ipcr): bool
     {
-        return $user->role->isReviewer()
+        return $ipcr->user_id !== $user->id
+            && $user->role->isReviewer()
             && $ipcr->status === $user->role->reviewStatus()
             && $user->covers($ipcr->user);
     }
@@ -38,6 +40,7 @@ class IpcrPolicy
     public function viewRecord(User $user, Ipcr $ipcr): bool
     {
         return $user->role->isReviewer()
+            && $user->role !== \App\Enums\Role::Vpaa
             && $ipcr->status === IpcrStatus::Completed
             && $user->covers($ipcr->user);
     }

@@ -108,7 +108,7 @@ class AnalyticsTest extends TestCase
         $summary = $this->summary($this->head, 'depthead.analytics');
 
         $this->assertSame(7, $summary['employees']);
-        $this->assertSame(4, $summary['submitted']);      // 2 completed + submitted + with HR
+        $this->assertSame(5, $summary['submitted']);      // 2 completed + submitted + with HR
         $this->assertSame(2, $summary['completed']);
         $this->assertSame(1, $summary['returned']);
         $this->assertSame(2, $summary['not_submitted']);  // draft + not started
@@ -145,14 +145,43 @@ class AnalyticsTest extends TestCase
         $this->actingAs($this->dean)->get(route('dean.analytics', ['college' => $this->elsewhere->id]))->assertForbidden();
     }
 
-    public function test_type_filter_changes_the_denominator_but_search_and_status_do_not(): void
+    public function test_type_name_and_status_filters_apply_to_the_summary_and_rows(): void
     {
         $teaching = $this->summary($this->head, 'depthead.analytics', ['type' => 'teaching']);
         $this->assertSame(6, $teaching['employees']);
 
         $searched = $this->actingAs($this->head)->get(route('depthead.analytics', ['q' => 'Alpha One', 'status' => 'completed']));
-        $this->assertSame(7, $searched->viewData('summary')['employees']);
+        $this->assertSame(1, $searched->viewData('summary')['employees']);
         $this->assertSame(1, $searched->viewData('table')->total());
+    }
+
+    public function test_assigned_roster_counts_returned_submissions_and_missing_forms(): void
+    {
+        $ids = User::whereIn('name', ['Alpha Six', 'Alpha Five', 'Alpha Four', 'Alpha One'])->pluck('id')->all();
+        $this->actingAs(User::where('role', 'hr')->firstOrFail())
+            ->put(route('hr.periods.roster.save', $this->period), ['employees' => $ids])->assertRedirect();
+        $page = $this->actingAs($this->head)->get(route('depthead.analytics'))->assertOk();
+        $summary = $page->viewData('summary');
+        $this->assertSame(4, $summary['employees']);
+        $this->assertSame(1, $summary['counts']['not_started']);
+        $this->assertSame(50, $page->viewData('analytics')->percent($summary['submitted']));
+        $this->assertSame(25, $page->viewData('analytics')->percent($summary['completed']));
+        $this->get(route('depthead.analytics', ['preview' => 1]))->assertOk()->assertSee('Alpha Six')->assertDontSee('Alpha Seven');
+    }
+
+    public function test_ranking_requires_hr_final_approval_and_preserves_ties(): void
+    {
+        $analytics = new \App\Services\IpcrAnalytics(\App\Services\AnalyticsScope::forUser($this->head), $this->period);
+        $finalize = function ($name) {
+            $record = User::where('name', $name)->firstOrFail()->ipcrs()->firstOrFail();
+            $record->update(['status' => 'completed', 'final_rating' => 4, 'completed_at' => now()]);
+            $record->reviews()->create(['user_id' => User::where('role', 'hr')->firstOrFail()->id, 'role' => 'hr', 'action' => 'completed']);
+        };
+        $this->assertSame('', $analytics->departmentLeaders()->first()['names']);
+        $finalize('Alpha One');
+        $this->assertSame('Alpha One', $analytics->departmentLeaders()->first()['names']);
+        $finalize('Alpha Two');
+        $this->assertSame('Alpha One, Alpha Two', $analytics->departmentLeaders()->first()['names']);
     }
 
     public function test_average_rating_counts_completed_ipcrs_only(): void

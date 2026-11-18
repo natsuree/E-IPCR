@@ -41,6 +41,7 @@ class TemplateController extends Controller
             'period' => $period,
             'type' => $type,
             'periods' => RatingPeriod::orderByDesc('starts_on')->get(),
+            'colleges' => \App\Models\College::orderBy('name')->get(),
             'versions' => $versions,
             'template' => $template,
             'active' => IpcrTemplate::activeFor($period->id, $type),
@@ -75,7 +76,7 @@ class TemplateController extends Controller
     {
         $this->manager->publish($template->load('period'), $request->user());
 
-        return $this->backTo($template, 'Version '.$template->version.' is published. New IPCRs will use it; IPCRs already started keep their own version.');
+        return $this->backTo($template, 'Version '.$template->version.' is published. New IPCRs and unsubmitted drafts of matching employees now use it; their accomplishments, MOV links and added targets are kept. Submitted, returned and completed IPCRs keep their version.');
     }
 
     public function storeItem(TemplateItemRequest $request, IpcrTemplate $template): RedirectResponse

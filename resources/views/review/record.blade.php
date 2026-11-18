@@ -1,6 +1,6 @@
 @extends('layouts.app')
 @section('title', 'IPCR Records')
-@section('heading', $ipcr->user->name.' · '.$ipcr->period->name)
+@section('heading', $ipcr->employeeName().' · '.$ipcr->period->name)
 @section('subtitle', 'Completed IPCR record. Read-only.')
 
 @section('actions')

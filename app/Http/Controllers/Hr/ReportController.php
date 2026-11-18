@@ -25,6 +25,13 @@ class ReportController extends Controller
             return redirect()->route('hr.periods.index')->withErrors(['template' => 'Create a rating period first.']);
         }
         $filters = $request->filters();
+        if ($request->boolean('preview')) {
+            return view('review.report-preview', [
+                'route' => 'hr.reports', 'analytics' => $analytics,
+                'filters' => $filters, 'summary' => $analytics->summary(),
+                'rows' => $analytics->employeeTable(sort: $filters['sort'] ?? 'name', direction: $filters['dir'] ?? 'asc')->cursor(),
+            ]);
+        }
 
         return view('hr.reports', [
             'analytics' => $analytics,
@@ -62,6 +69,6 @@ class ReportController extends Controller
         $scope = AnalyticsScope::forUser($request->user(), $request->intOrNull('college'), $request->intOrNull('department'));
         $period = $request->filled('period') ? RatingPeriod::findOrFail($request->integer('period')) : RatingPeriod::current();
 
-        return new IpcrAnalytics($scope, $period, $request->validated('type'));
+        return new IpcrAnalytics($scope, $period, $request->validated('type'), $request->validated('status'), $request->validated('q'));
     }
 }

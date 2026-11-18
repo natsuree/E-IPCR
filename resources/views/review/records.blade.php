@@ -64,8 +64,8 @@
                     <tbody>
                     @foreach ($records as $record)
                         <tr>
-                            <td><span class="fw-semibold">{{ $record->user->name }}</span><div class="small text-secondary">{{ $record->user->employeeTypeLabel() }}</div></td>
-                            <td>{{ $record->user->unitLabel() }}</td>
+                            <td><span class="fw-semibold">{{ $record->employeeName() }}</span><div class="small text-secondary">{{ $record->employeeTypeLabel() }}</div></td>
+                            <td>{{ $record->employeeUnitLabel() }}@if ($record->usesLegacyEmployeeDetails())<div class="small text-secondary">Current unit (not saved at submission)</div>@endif</td>
                             <td>{{ $record->period->name }}</td>
                             <td class="text-end fw-semibold">{{ number_format((float) $record->final_rating, 2) }}</td>
                             <td>{{ $record->adjectival_rating }}</td>
